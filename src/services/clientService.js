@@ -1,69 +1,63 @@
-import { pool } from "../db/db.js";
+import { dbConn } from "../db/db.js";
 
 class ClientService {
-    
-    async getAllClients() {
-        const sql = `SELECT id, nombre, apellido, edad, email
-                            FROM clientes
-                            ORDER BY id ASC;`;
-        let conn;
 
+    async getAllClients() {
         try {
-            conn = await pool.getConnection();
-            const [clients] = await conn.query(sql);
+            const result = await dbConn.select().from('clientes').orderBy('id', 'asc');
+            const clientIds = result.map( client => client.id );
+            const clientAddresses = await dbConn('direcciones').whereIn('cliente_id', clientIds);
+
+            const addressesMap = new Map();
+            clientAddresses.forEach( address => {
+                const clientId = address.cliente_id;
+                if(!addressesMap.has(clientId)){
+                    addressesMap.set(clientId, []);
+                }
+                addressesMap.get( clientId ).push( address );
+            } );
+
+            const clients = result.map( client => {
+                client.direcciones = addressesMap.get(client.id) || [];
+                return client;
+            });
+            
             return clients;
 
         } catch (error) {
             console.error('Error:', error);
             throw error;
-
-        } finally {
-            if (conn) conn.release();
         }
     }
 
     async getClientById( id ){
-        const sql = `SELECT id, nombre, apellido, edad, email
-                        FROM clientes
-                        WHERE id = ${id} LIMIT 1;`;                     
-        let conn;
-
         try {
-            conn = await pool.getConnection();
-            const [rows] = await conn.query(sql);
+            const [result] = await dbConn('clientes').where({id}).select();
 
-            if (rows.length == 0) return null;
+            if( !result ) return null;
 
-            return rows[0];
+            return result;
 
         } catch (error) {
             console.error('Error:', error);
             throw error;
 
-        } finally {
-            if (conn) conn.release();
-        }        
+        }      
     }
 
     async createClient( clientData ){
-        const {nombre, apellido, edad, email} = clientData;
-        const sql = `INSERT INTO clientes (nombre, apellido, edad, email, fecha_registro)
-                        VALUES (?, ?, ?, ?, ?);`;                
-        let conn;
-
         try {
-            conn = await pool.getConnection();
-            const [result] = await conn.execute(sql, [nombre, apellido, edad, email, new Date()]);
-            const newId = result.insertId;
-            const newCliente = await this.getClientById(newId);
-            return newCliente;
+            const [newCliente] = await dbConn('clientes').insert({
+                ...clientData,
+                fecha_registro : new Date()                
+            }).returning('id');
+
+            return { id: newCliente };
 
         } catch (error) {
             console.error('Error:', error);
             throw error;
 
-        } finally {
-            if (conn) conn.release();
         }
     }
 

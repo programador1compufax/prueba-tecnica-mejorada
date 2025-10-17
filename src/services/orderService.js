@@ -1,4 +1,4 @@
-import { pool } from "../db/db.js";
+import { dbConn } from "../db/db.js";
 import folioGenerator from "../utils/folioGenerator.js";
 
 class OrderService{
@@ -6,18 +6,15 @@ class OrderService{
     async createOrder(orderData){
         const { cliente_id, items } = orderData;
         const folio = folioGenerator.generate();
-
-        const sql = `INSERT INTO ordenes (cliente_id, producto, cantidad, fecha_pedido, folio)
-                        VALUES (?, ?, ?, ?, ?)`;
-        let conn;
         
         try {
-            conn = await pool.getConnection();
-
             for(const item of items){
-                const { producto, cantidad } = item;
-                await conn.execute(sql, [cliente_id, producto, cantidad, new Date(), folio]);
+                item.cliente_id = cliente_id;
+                item.folio = folio;
+                item.fecha_pedido = new Date();
             }
+
+            await dbConn('ordenes').insert( items );
             
             return { folio };
 
@@ -28,53 +25,32 @@ class OrderService{
     }
     
     async getAllOrders(){
-        const sql = `SELECT * FROM ordenes ORDER BY id ASC;`;
-        let conn;
-
         try {
-            conn = await pool.getConnection();
-            const [orders] = await conn.query(sql);
+            const orders = await dbConn('ordenes').select().orderBy('fecha_pedido', 'desc');
             return orders;
 
         } catch (error) {
             console.error('Error:', error);
             throw error;
             
-        } finally {
-            if (conn) conn.release();
         }
     }
 
     async getOrdersUser( id ){
-        const sql = `SELECT * FROM ordenes
-                        WHERE cliente_id = ${id}
-                        ORDER BY id ASC;`;
-        let conn;
-
         try {
-            conn = await pool.getConnection();
-            const [orders] = await conn.query(sql);
-
+            const orders = await dbConn('ordenes').select().where('cliente_id', id).orderBy('id', 'asc');
             return orders;
 
         } catch (error) {
             console.error('Error:', error);
             throw error;
             
-        } finally {
-            if (conn) conn.release();
         }
     }
 
     async getOrdersByFolio( folio ){
-        const sql = `SELECT * FROM ordenes
-                        WHERE folio = '${folio}'
-                        ORDER BY id ASC;`;
-        let conn;
-
         try {
-            conn = await pool.getConnection();
-            const [orders] = await conn.query(sql);
+            const orders = await dbConn('ordenes').select().where('folio', folio);
 
             if (orders.length == 0) return null;
 
@@ -84,8 +60,6 @@ class OrderService{
             console.error('Error:', error);
             throw error;
             
-        } finally {
-            if (conn) conn.release();
         }
     }
 }

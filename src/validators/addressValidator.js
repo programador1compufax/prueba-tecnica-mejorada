@@ -4,6 +4,11 @@ class AddressValidator {
   
   validateAddressData(data, isUpdate = false) {
     const errors = [];
+
+    if ( !data.calle && !data.ciudad && !data.codigo_postal || data === null ) {
+      errors.push({ field: 'calle', message: 'Se necesita al menos un campo para actualizar' });
+    }
+    
     if (!isUpdate && !data.calle) {
       errors.push({ field: 'calle', message: 'La calle es requerida' });
     } else if (data.calle !== undefined) {
