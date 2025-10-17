@@ -24,7 +24,7 @@ class ClientController {
     async getClientById(req, res, next) {
         try {
             const { id } = req.params;
-            const validId = clientValidator.validateId(id);
+            const validId = await clientValidator.validateId(id);
 
             const client = await clientService.getClientById(validId);
 
@@ -51,7 +51,7 @@ class ClientController {
     async createClient(req, res, next) {
         try {
             const clientData = req.body;
-            const validData = clientValidator.validateCreateClient(clientData);
+            const validData = await clientValidator.validateCreateClient(clientData);
             const newClient = await clientService.createClient(validData);
 
             const response = new SuccessResponse(

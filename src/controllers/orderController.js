@@ -9,7 +9,7 @@ class OrderController{
     async createOrder(req, res, next){
         try {
             const orderData = req.body;
-            const validatedData = orderValidator.validateCreateOrder(orderData);
+            const validatedData = await orderValidator.validateCreateOrder(orderData);
 
             const client = await clientService.getClientById(validatedData.cliente_id);
             if( !client ){
@@ -83,7 +83,7 @@ class OrderController{
     async getOrdersByFolio(req, res, next){
         try {
             const { folio } = req.params;
-            const validFolio = orderValidator.validateFolio(folio);
+            const validFolio = await orderValidator.validateFolio(folio);
 
             const orders = await orderService.getOrdersByFolio(validFolio);
 

@@ -26,8 +26,8 @@ class DireccionController {
             const { id } = req.query;
             const addressData = req.body;
 
-            const validId = addressValidators.validateId(id);
-            const validData = addressValidators.validateAddressData(addressData, true);
+            const validId = await addressValidators.validateId(id);
+            const validData = await addressValidators.validateAddressData(addressData);
 
             const addressToUpdate = await addressService.getAddressById(validId);
 
